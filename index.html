@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Колобки Комбат</title>
+
+    <style>
+
+        body {
+
+            background-color: #333;
+
+            color: white;
+
+            font-family: Arial, sans-serif;
+
+            text-align: center;
+
+        }
+
+
+
+        .container {
+
+            max-width: 600px;
+
+            margin: 50px auto;
+
+            padding: 20px;
+
+            border-radius: 10px;
+
+            background-color: rgba(255, 255, 255, 0.05);
+
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+
+        }
+
+
+
+        img.kolobok-image {
+
+            display: block;
+
+            margin: 30px auto;
+
+            width: 150px;
+
+            height: auto;
+
+            cursor: pointer;
+
+            transition: transform 0.3s ease;
+
+        }
+
+
+
+        img.kolobok-image:hover {
+
+            transform: scale(1.1);
+
+        }
+
+
+
+        ul.tabs {
+
+            list-style-type: none;
+
+            padding: 0;
+
+            margin-bottom: 20px;
+
+            overflow: hidden;
+
+        }
+
+
+
+        ul.tabs li {
+
+            display: inline-block;
+
+            margin-right: 10px;
+
+            cursor: pointer;
+
+        }
+
+
+
+        ul.tabs li.active {
+
+            font-weight: bold;
+
+        }
+
+
+
+        .tab-content {
+
+            display: none;
+
+        }
+
+
+
+        .tab-content.active {
+
+            display: block;
+
+        }
+
+
+
+        .modal {
+
+            display: none;
+
+            position: fixed;
+
+            top: 50%;
+
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            background-color: rgba(255, 255, 255, 0.9);
+
+            padding: 20px;
+
+            border-radius: 10px;
+
+            z-index: 999;
+
+        }
+
+
+
+        .modal.show-modal {
+
+            display: block;
+
+        }
+
+
+
+        .close-btn {
+
+            position: absolute;
+
+            top: 10px;
+
+            right: 10px;
+
+            cursor: pointer;
+
+        }
+
+
+
+        .shop-item {
+
+            margin-top: 10px;
+
+            padding: 10px;
+
+            background-color: rgba(255, 255, 255, 0.1);
+
+            border-radius: 6px;
+
+            cursor: pointer;
+
+        }
+
+
+
+        .shop-item:hover {
+
+            background-color: rgba(255, 255, 255, 0.2);
+
+        }
+
+
+
+        .shop-item .price {
+
+            float: right;
+
+            color: #ffc107;
+
+        }
+
+
+
+        .bought-skin {
+
+            opacity: 0.5;
+
+            cursor: default;
+
+        }
+
+
+
+        .bought-skin:hover {
+
+            background-color: inherit;
+
+        }
+
+
+
+        /* Стилизация индикатора энергии */
+
+        .energy-bar {
+
+            width: 100%;
+
+            height: 20px;
+
+            background-color: #555;
+
+            margin: 10px 0;
+
+            border-radius: 5px;
+
+            overflow: hidden;
+
+        }
+
+
+
+        .energy-fill {
+
+            height: 100%;
+
+            background-color: #00FF7F;
+
+            width: 0;
+
+            transition: width 0.5s linear;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Колобки Комбат</h1>
+
+    <p id="kolobok-count">КолобкиКоинов: <span id="coin-count">0</span></p>
+
+    <p id="energy-count">Энергия: <span id="energy-level">2000 / 2000</span></p>
+
+    <progress value="2000" max="2000" id="energy-progressbar"></progress>
+
+    <img src="https://i.imghippo.com/files/eG8071Lwc.png" alt="Колобок" class="kolobok-image" />
+
+
+
+    <ul class="tabs">
+
+        <li class="active" data-tab="upgrade">Прокачка</li>
+
+        <li data-tab="store">Магазин</li>
+
+    </ul>
+
+
+
+    <div id="upgrade" class="tab-content active">
+
+        <h2>Прокачка</h2>
+
+        <ul id="upgrade-list"></ul>
+
+    </div>
+
+
+
+    <div id="store" class="tab-content">
+
+        <h2>Магазин Скины</h2>
+
+        <ul id="store-list"></ul>
+
+    </div>
+
+
+
+    <!-- Модальное окно -->
+
+    <div id="modal" class="modal">
+
+        <span class="close-btn">×</span>
+
+        <p>Вы действительно хотите купить этот предмет?</p>
+
+        <button id="confirm-buy">Да</button>
+
+        <button id="cancel-buy">Нет</button>
+
+    </div>
+
+</div>
+
+<script>
+
+    let kolobokCoinCount = 0;
+
+    let energyLevel = 2000;
+
+    let maxEnergy = 2000;
+
+    const coinCountDisplay = document.getElementById('coin-count');
+
+    const energyBar = document.getElementById('energy-progressbar');
+
+    const energyLevelDisplay = document.getElementById('energy-level');
+
+    const kolobokImage = document.querySelector('.kolobok-image');
+
+    const upgradeList = document.getElementById('upgrade-list');
+
+    const storeList = document.getElementById('store-list');
+
+    const modal = document.getElementById('modal');
+
+    const confirmBuyBtn = document.getElementById('confirm-buy');
+
+    const cancelBuyBtn = document.getElementById('cancel-buy');
+
+    const tabs = document.querySelectorAll('.tabs li');
+
+    const tabContents = document.querySelectorAll('.tab-content');
+
+
+
+    setInterval(restoreEnergy, 1000);
+
+
+
+    function restoreEnergy() {
+
+        if (energyLevel < maxEnergy) {
+
+            energyLevel += 1;
+
+            updateEnergy();
+
+        }
+
+    }
+
+
+
+    kolobokImage.addEventListener('click', function () {
+
+        if (energyLevel > 0) {
+
+            energyLevel--;
+
+            updateEnergy();
+
+            kolobokCoinCount++;
+
+            updateCoins();
+
+        }
+
+    });
+
+
+
+    function updateCoins() {
+
+        coinCountDisplay.textContent = kolobokCoinCount;
+
+    }
+
+
+
+    function updateEnergy() {
+
+        energyLevelDisplay.textContent = `${energyLevel} / ${maxEnergy}`;
+
+        energyBar.value = energyLevel;
+
+        energyBar.max = maxEnergy;
+
+    }
+
+
+
+    // Прокачка
+
+    addUpgradeItem("Улучшить Энергию", "Увеличить максимальный уровень энергии на 500", 500);
+
+
+
+    function addUpgradeItem(name, description, price) {
+
+        const item = document.createElement('li');
+
+        item.className = 'shop-item';
+
+        item.innerHTML = `
+
+        ${name}<br>
+
+        <small>${description}</small><br>
+
+        <span class="price">Цена: ${price} КолобкиКоинов</span>
+
+    `;
+
+        item.onclick = function () {
+
+            showModal(this, price);
+
+        };
+
+        upgradeList.appendChild(item);
+
+    }
+
+
+
+    // Магазин
+
+    addSkin("Обычный Колобок", "https://via.placeholder.com/80x80.png?text=Obychny+Kolobok", 0, true); // Уже куплен
+
+    addSkin("Pou", "https://via.placeholder.com/80x80.png?text=Pou", 1000);
+
+    addSkin("BananaCat", "https://via.placeholder.com/80x80.png?text=BananaCat", 2500);
+
+
+
+    function addSkin(name, imageUrl, price, isBought = false) {
+
+        const item = document.createElement('li');
+
+        item.className = 'shop-item' + (isBought ? ' bought-skin' : '');
+
+        item.innerHTML = `
+
+            <img src="${imageUrl}" alt="${name}" style="width: 80px; height: 80px;">
+
+            <div>
+
+                <strong>${name}</strong><br>
+
+                <span class="price">Цена: ${price} КолобкиКоинов</span>
+
+            </div>
+
+        `;
+
+        if (!isBought) {
+
+            item.onclick = function () {
+
+                showModal(this, price);
+
+            };
+
+        }
+
+        storeList.appendChild(item);
+
+    }
+
+
+
+    function showModal(item, price) {
+
+        modal.style.display = 'block';
+
+        confirmBuyBtn.onclick = function () {
+
+            buyItem(item, price);
+
+        };
+
+        cancelBuyBtn.onclick = hideModal;
+
+    }
+
+
+
+    function buyItem(item, price) {
+
+        if (kolobokCoinCount >= price) {
+
+            kolobokCoinCount -= price;
+
+            alert(`Вы купили ${item.firstChild.nextSibling.firstChild.nodeValue.trim()}`);
+
+            updateCoins();
+
+            hideModal();
+
+        } else {
+
+            alert("Недостаточно КолобкиКоинов");
+
+        }
+
+    }
+
+
+
+    function hideModal() {
+
+        modal.style.display = 'none';
+
+    }
+
+
+
+    // Управление вкладками
+
+    tabs.forEach(tab => {
+
+        tab.addEventListener('click', () => {
+
+            const targetTab = tab.dataset.tab;
+
+            tabs.forEach(t => t.classList.remove('active'));
+
+            tab.classList.add('active');
+
+            tabContents.forEach(content => {
+
+                content.classList.remove('active');
+
+                if (content.id === targetTab) {
+
+                    content.classList.add('active');
+
+                }
+
+            });
+
+        });
+
+    });
+
+</script>
+
+</body>
+
+</html>
